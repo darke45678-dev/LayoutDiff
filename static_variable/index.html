@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>可變版型電子檔檢測系統 (Variable Layout System)</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-icon">🎯</div>
+      <div>
+        <h1 class="app-title">可變版型電子檔檢測系統 <span class="badge-port" id="port-badge"></span></h1>
+        <p class="app-subtitle">支援任意模數 (1~N模) ｜ 多尺寸混排 ｜ 專屬準星對位 ｜ 零容差像素比對</p>
+      </div>
+    </div>
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="tab-inspect">🔍 檢測工作台 (Inspector)</button>
+      <button class="tab-btn" data-tab="tab-builder">🛠️ 建版工作台 (Layout Builder)</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+    <!-- TAB 1: 檢測工作台 -->
+    <section id="tab-inspect" class="tab-content active">
+      <div class="inspector-layout">
+        <!-- Sidebar Controls -->
+        <aside class="panel inspector-sidebar">
+          <div class="panel-section">
+            <h3 class="section-title">1. 選取檢測版型</h3>
+            <div class="form-group">
+              <label for="inspect-layout-select">現有版型清單：</label>
+              <select id="inspect-layout-select" class="form-control">
+                <option value="">載入中...</option>
+              </select>
+            </div>
+            <div id="layout-summary-box" class="info-card">
+              <div class="info-row"><span class="label">版型名稱：</span><span id="sum-name" class="val">-</span></div>
+              <div class="info-row"><span class="label">總模數：</span><span id="sum-dies" class="val badge-dies">-</span></div>
+              <div class="info-row"><span class="label">尺寸規格：</span><span id="sum-spec" class="val">-</span></div>
+              <div class="info-row"><span class="label">尺寸分群：</span><span id="sum-groups" class="val">-</span></div>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h3 class="section-title">2. 上傳待測電子檔</h3>
+            <div class="file-drop-area" id="inspect-drop-zone">
+              <span class="drop-icon">📁</span>
+              <p>拖曳待測 PNG/JPG 至此<br>或 <label class="btn-file-select">瀏覽檔案<input type="file" id="inspect-file-input" accept=".png,.jpg,.jpeg"></label></p>
+              <span id="inspect-selected-filename" class="selected-file">尚未選擇檔案</span>
+            </div>
+
+            <div class="quick-test-section">
+              <label for="quick-test-select">⚡ 快速測試假資料 (免上傳)：</label>
+              <select id="quick-test-select" class="form-control">
+                <option value="">-- 請先選取上方版型 --</option>
+              </select>
+            </div>
+
+            <button id="btn-run-inspect" class="btn btn-primary btn-block" disabled>
+              ▶ 執行零容差逐像素檢測
+            </button>
+          </div>
+
+          <div class="panel-section">
+            <h3 class="section-title">四角基準準星範本</h3>
+            <div class="fiducials-grid" id="fiducials-preview-box">
+              <div class="fid-item"><span>左上 (TL)</span><img id="fid-img-tl" alt="TL"></div>
+              <div class="fid-item"><span>右上 (TR)</span><img id="fid-img-tr" alt="TR"></div>
+              <div class="fid-item"><span>左下 (BL)</span><img id="fid-img-bl" alt="BL"></div>
+              <div class="fid-item"><span>右下 (BR)</span><img id="fid-img-br" alt="BR"></div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main Inspection View -->
+        <div class="inspector-main">
+          <!-- Results Banner -->
+          <div id="result-banner" class="result-banner idle">
+            <div class="banner-status-box">
+              <div class="status-badge" id="banner-status-badge">STANDBY</div>
+              <div class="status-desc" id="banner-status-desc">請選取版型與待測檔後點擊「執行檢測」</div>
+            </div>
+            <div class="banner-indicators">
+              <div class="indicator-item">
+                <span class="ind-label">對位狀態</span>
+                <span class="ind-val badge-align" id="banner-align-badge">-</span>
+              </div>
+              <div class="indicator-item">
+                <span class="ind-label">總模數</span>
+                <span class="ind-val" id="banner-total-dies">0</span>
+              </div>
+              <div class="indicator-item">
+                <span class="ind-label">合格模數</span>
+                <span class="ind-val val-pass" id="banner-pass-dies">0</span>
+              </div>
+              <div class="indicator-item">
+                <span class="ind-label">瑕疵模數</span>
+                <span class="ind-val val-fail" id="banner-fail-dies">0</span>
+              </div>
+              <div class="indicator-item">
+                <span class="ind-label">耗時</span>
+                <span class="ind-val" id="banner-elapsed">0 ms</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Split Workspace: Sheet Canvas + Die List -->
+          <div class="inspect-workspace">
+            <div class="sheet-viewport-box">
+              <div class="viewport-toolbar">
+                <span class="viewport-title">大版瑕疵分布檢視器</span>
+                <div class="toolbar-tools">
+                  <button class="btn btn-sm" id="btn-zoom-fit">全圖適配</button>
+                  <button class="btn btn-sm" id="btn-zoom-100">100% 原始</button>
+                </div>
+              </div>
+              <div class="canvas-scroll-container" id="inspect-canvas-wrap">
+                <img id="inspect-preview-img" class="sheet-img" alt="大版檢測預覽">
+              </div>
+            </div>
+
+            <!-- Die Results Navigator -->
+            <div class="die-navigator-box">
+              <div class="navigator-header">
+                <h4>各模判定清單</h4>
+                <div class="filter-pills">
+                  <button class="pill active" data-filter="ALL">全部 (<span id="cnt-all">0</span>)</button>
+                  <button class="pill pill-fail" data-filter="FAIL">瑕疵 (<span id="cnt-fail">0</span>)</button>
+                  <button class="pill pill-pass" data-filter="PASS">合格 (<span id="cnt-pass">0</span>)</button>
+                </div>
+              </div>
+              <div class="die-list-table-wrap">
+                <table class="die-table">
+                  <thead>
+                    <tr>
+                      <th>模號</th>
+                      <th>分群</th>
+                      <th>座標 (X, Y, W, H)</th>
+                      <th>瑕疵像素</th>
+                      <th>結果</th>
+                    </tr>
+                  </thead>
+                  <tbody id="die-table-body">
+                    <tr><td colspan="5" class="empty-hint">尚未執行檢測</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- Selected Die Detail Card with 1:1 Pixel Crop View -->
+              <div id="die-detail-card" class="die-detail-card hidden">
+                <div class="dt-card-header">
+                  <h5>模位 #<span id="dt-id">-</span> 1:1 原始無損像素檢視</h5>
+                  <button class="btn btn-sm btn-primary" id="btn-open-pixel-modal">🔍 彈出高畫質對照視窗</button>
+                </div>
+                <div class="dt-info-bar">
+                  <span><strong>判定：</strong><span id="dt-verdict" class="badge-verdict">-</span></span>
+                  <span><strong>規格：</strong><span id="dt-dim">-</span> px</span>
+                  <span><strong>瑕疵：</strong><span id="dt-px">-</span> px</span>
+                </div>
+
+                <!-- 1:1 Mode Selector -->
+                <div class="dt-view-modes" id="card-view-modes">
+                  <button class="pill active" data-cropmode="composite">三圖對照</button>
+                  <button class="pill" data-cropmode="diff">差異標註 (紅點)</button>
+                  <button class="pill" data-cropmode="golden">Golden 母本</button>
+                  <button class="pill" data-cropmode="target">待測檔</button>
+                </div>
+
+                <!-- 1:1 Image Canvas -->
+                <div class="crop-image-container" id="card-crop-container">
+                  <img id="dt-crop-img" class="crop-patch-img" alt="1:1 原始像素切片">
+                </div>
+
+                <div id="dt-defects-list" class="dt-defects-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: 建版工作台 -->
+    <section id="tab-builder" class="tab-content">
+      <div class="builder-layout">
+        <!-- Builder Sidebar -->
+        <aside class="panel builder-sidebar">
+          <div class="panel-section">
+            <h3 class="section-title">1. 上傳版型影像 (Golden)</h3>
+            <div class="file-drop-area" id="builder-drop-zone">
+              <span class="drop-icon">🖼️</span>
+              <p>拖曳版型影像 (Golden) 至此<br>或 <label class="btn-file-select">選取圖檔<input type="file" id="builder-file-input" accept=".png,.jpg,.jpeg"></label></p>
+              <span id="builder-selected-filename" class="selected-file">未選擇檔案</span>
+            </div>
+            <button id="btn-builder-detect" class="btn btn-secondary btn-block">
+              ⚡ 自動辨識準星與模位
+            </button>
+          </div>
+
+          <div class="panel-section">
+            <h3 class="section-title">2. 智慧防呆診斷報告</h3>
+            <div id="builder-warnings-box" class="warnings-box">
+              <p class="empty-hint">上傳樣本後將自動呈現防呆檢查報告...</p>
+            </div>
+            <button class="btn btn-sm btn-block" id="btn-builder-redetect" disabled>📍 依目前準星重新偵測模位</button>
+            <div class="builder-stat-card">
+              <div><strong>總偵測模數：</strong><span id="b-stat-count" class="badge-dies">0</span></div>
+              <div><strong>尺寸分群：</strong><span id="b-stat-groups">-</span></div>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <h3 class="section-title">3. 確認存檔</h3>
+            <div class="form-group">
+              <label>版型代碼 (Layout ID)：</label>
+              <input type="text" id="b-layout-id" class="form-control" placeholder="例如：layout_53_mixed">
+            </div>
+            <div class="form-group">
+              <label>版型名稱：</label>
+              <input type="text" id="b-layout-name" class="form-control" placeholder="例如：客戶A 53模 混款版面">
+            </div>
+            <label class="builder-confirm-label">
+              <input type="checkbox" id="builder-review-confirm" disabled>
+              我已確認模位框與四角準星位置
+            </label>
+            <button id="btn-builder-save" class="btn btn-success btn-block" disabled>
+              💾 儲存版型與專屬準星範本
+            </button>
+          </div>
+        </aside>
+
+        <!-- Builder Interactive Canvas -->
+        <div class="builder-main">
+          <div class="builder-canvas-toolbar">
+            <span class="toolbar-title">版面設計畫布 (支援框選編輯與四角準星拖曳)</span>
+            <div class="toolbar-tools">
+              <label class="builder-tool-label">新增尺寸
+                <select id="builder-size-select" class="form-control builder-size-select"><option value="free">自由拖曳</option></select>
+              </label>
+              <label class="builder-tool-label">縮放
+                <select id="builder-zoom-select" class="form-control builder-zoom-select">
+                  <option value="1">適配</option><option value="1.25">125%</option>
+                  <option value="1.5">150%</option>
+                  <option value="2">200%</option><option value="3">300%</option>
+                </select>
+              </label>
+              <button class="btn btn-sm" id="btn-canvas-pan" aria-pressed="false">✋ 移動畫布</button>
+              <button class="btn btn-sm" id="btn-find-same-size">🔎 尋找同尺寸候選框</button>
+              <button class="btn btn-sm" id="btn-canvas-add-box">➕ 手動拉框</button>
+              <button class="btn btn-sm btn-danger" id="btn-canvas-del-box">🗑️ 刪除選取框</button>
+              <button class="btn btn-sm" id="btn-canvas-reset">🔄 還原自動偵測</button>
+            </div>
+          </div>
+
+          <div class="builder-canvas-container" id="builder-canvas-wrap">
+            <canvas id="builder-canvas"></canvas>
+          </div>
+          <div class="builder-candidate-toolbar hidden" id="builder-candidate-toolbar">
+            <span id="builder-candidate-count">尚未搜尋</span>
+            <button class="btn btn-sm" id="btn-candidate-image-toggle">影像搜尋</button>
+            <button class="btn btn-sm" id="btn-candidate-grid-toggle">網格推算</button>
+            <button class="btn btn-sm btn-success" id="btn-candidate-accept">確認批次加入</button>
+            <button class="btn btn-sm" id="btn-candidate-cancel">取消預覽</button>
+            <div class="builder-candidate-list" id="builder-candidate-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 1:1 Fullscreen Inspection Modal -->
+  <div id="pixel-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modal-title">模位 1:1 原始無損像素對照 (7677×5905 原圖局部取樣)</h3>
+        <button class="modal-close" id="btn-close-modal">✕</button>
+      </div>
+      <div class="modal-toolbar">
+        <div class="dt-view-modes" id="modal-view-modes">
+          <button class="pill active" data-cropmode="composite">三圖並排對照 (Composite)</button>
+          <button class="pill" data-cropmode="diff">差異標註 (紅點)</button>
+          <button class="pill" data-cropmode="golden">1. Golden 母本</button>
+          <button class="pill" data-cropmode="target">2. 待測檔 (對位後)</button>
+        </div>
+        <span class="modal-zoom-hint">💡 呈現 100% 原始電子檔真實像素，絕無縮圖插值模糊</span>
+      </div>
+      <div class="modal-body" id="modal-img-container">
+        <img id="modal-crop-img" class="modal-patch-img" alt="1:1 原始像素切片">
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

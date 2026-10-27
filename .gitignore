@@ -1,0 +1,28 @@
+# Runtime and uploaded data
+runtime/
+samples/
+
+# Python environment and bytecode
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.env.*
+
+# Local IDE and temporary files
+.vscode/
+.idea/
+*.log
+
+# Portfolio workspace extras (not included in core release)
+configs/
+scripts/
+tests/
+assets/
+HANDOFF.md
+DEV_LOG.md
+CASE_STUDY.md
+THIRD_PARTY_NOTICES.md
+run.bat
