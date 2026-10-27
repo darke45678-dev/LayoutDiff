@@ -16,13 +16,10 @@ __pycache__/
 .idea/
 *.log
 
-# Portfolio workspace extras (not included in core release)
+# Internal dev logs and test suites
+HANDOFF.md
+DEV_LOG.md
 configs/
 scripts/
 tests/
-assets/
-HANDOFF.md
-DEV_LOG.md
-CASE_STUDY.md
-THIRD_PARTY_NOTICES.md
 run.bat
