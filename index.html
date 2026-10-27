@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LayoutDiff - 可變版型電子檔檢測原型</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-alt: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-light: #64748b;
+      --border: #e2e8f0;
+      --border-dark: #cbd5e1;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --badge-pass: #16a34a;
+      --badge-pass-bg: #dcfce7;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background: #ffffff;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .nav-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-left: 1.25rem;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .btn-github {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.85rem;
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text-main) !important;
+      font-size: 0.85rem !important;
+    }
+
+    .btn-github:hover {
+      background: var(--bg-alt);
+      border-color: #94a3b8;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem 1.5rem;
+    }
+
+    .hero {
+      margin-bottom: 3.5rem;
+      padding-bottom: 2.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .badge-sub {
+      display: inline-block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      background: #f1f5f9;
+      color: var(--text-muted);
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      letter-spacing: 0.02em;
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      line-height: 1.25;
+      color: var(--text-main);
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .lead {
+      font-size: 1.125rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+      max-width: 820px;
+    }
+
+    section {
+      margin-bottom: 3.5rem;
+    }
+
+    h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: -0.01em;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin: 1.5rem 0 0.5rem 0;
+    }
+
+    p {
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    ul, ol {
+      color: var(--text-muted);
+      margin-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    li {
+      margin-bottom: 0.35rem;
+    }
+
+    /* Grid layout for features */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+
+    .feature-card h3 {
+      margin-top: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .feature-card p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+
+    /* Process Flow */
+    .flow-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+
+    .flow-step {
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+    }
+
+    .step-num {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .step-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 0.35rem;
+    }
+
+    .step-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Images */
+    .image-block {
+      margin: 2rem 0;
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .image-block img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .image-caption {
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      color: var(--text-light);
+      background: #ffffff;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Data Table */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+
+    th {
+      background: var(--bg-alt);
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    td.code {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-main);
+    }
+
+    .badge-pass {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      background: var(--badge-pass-bg);
+      color: var(--badge-pass);
+      font-weight: 600;
+      border-radius: 4px;
+      font-size: 0.78rem;
+    }
+
+    /* Note Box */
+    .callout {
+      background: var(--bg-alt);
+      border-left: 3px solid var(--primary);
+      padding: 1rem 1.25rem;
+      border-radius: 0 6px 6px 0;
+      margin: 1.5rem 0;
+      font-size: 0.92rem;
+    }
+
+    .callout-title {
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 0.35rem;
+    }
+
+    .callout p {
+      margin-bottom: 0;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      background: #ffffff;
+      padding: 2.5rem 1.5rem;
+      font-size: 0.85rem;
+      color: var(--text-light);
+      text-align: center;
+    }
+
+    footer a {
+      color: var(--text-muted);
+      text-decoration: underline;
+    }
+
+    @media (max-width: 640px) {
+      h1 { font-size: 1.8rem; }
+      .lead { font-size: 1rem; }
+      .flow-steps { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header>
+    <div class="nav-container">
+      <a href="#" class="brand">LayoutDiff</a>
+      <div class="nav-links">
+        <a href="#workflow">工作流程</a>
+        <a href="#showcase">案例成果</a>
+        <a href="#benchmarks">測試數據</a>
+        <a href="#findings">工程洞察</a>
+        <a href="https://github.com/darke45678-dev/LayoutDiff" target="_blank" class="btn-github">
+          <span>GitHub</span> ↗
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <span class="badge-sub">作品集技術案例 ｜ 去識別化版本</span>
+      <h1>可變版型電子檔檢測原型</h1>
+      <p class="lead">
+        針對非固定模數、多尺寸混排與不規則排列印刷版面，設計並迭代的高速電子檔檢測系統。
+        支援智慧模位邊界偵測、人工防呆檢視、自適應角點準星對位，以及逐模位零容差像素差分引擎。
+      </p>
+    </section>
+
+    <!-- Problem & Goal -->
+    <section>
+      <h2>問題背景與目標</h2>
+      <p>
+        傳統印刷檢測系統多仰賴預設模數、固定尺寸或均勻網格切割。當生產版面轉為混款、缺格、密集或不規則排列時，固定規則容易產生漏檢、黏框或誤把板材外圍納入比對等誤報。
+      </p>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>任意模數與混款分群</h3>
+          <p>不預設單一尺寸網格，自動識別版面中的標籤幾何邊界，依模位長寬自動聚合分群。</p>
+        </div>
+        <div class="feature-card">
+          <h3>建版候選與防呆確認</h3>
+          <p>自動演算法作為輔助建議，提供人員在 Web 畫布上進行縮放、微調與重疊診斷，避免誤判保存。</p>
+        </div>
+        <div class="feature-card">
+          <h3>特徵準星精準對位</h3>
+          <p>支援十字準星與特殊角點標記，具備幾何平移與微小旋轉校正，對位不足自動轉為 REVIEW 狀態。</p>
+        </div>
+        <div class="feature-card">
+          <h3>限定模位零容差差分</h3>
+          <p>只在保存之模位有效框內進行高速逐像素運算，精確回報差異像素座標與所在模位編號。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Workflow -->
+    <section id="workflow">
+      <h2>系統工作流程</h2>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-num">Step 01</div>
+          <div class="step-title">上傳 Golden 母本</div>
+          <div class="step-desc">自動萃取版面邊緣輪廓，計算四角準星特徵與模位幾何框。</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">Step 02</div>
+          <div class="step-title">人工檢視與建版</div>
+          <div class="step-desc">人員確認模位邊界與準星品質，保存為專屬版型規範（Profile）。</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">Step 03</div>
+          <div class="step-title">載入待測檔對位</div>
+          <div class="step-desc">依準星範本執行幾何對齊；尺寸不符或對位信心不足自動警示。</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">Step 04</div>
+          <div class="step-title">逐模位像素差分</div>
+          <div class="step-desc">限定在有效模位 ROI 內比對，輸出合格狀態與高精度差異位置。</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Visual Showcase -->
+    <section id="showcase">
+      <h2>合成展示與差分視覺</h2>
+      <p>以下圖檔由專案內之可重現合成測資產生，用於說明檢測流程與像素級精度標記：</p>
+
+      <div class="image-block">
+        <img src="assets/portfolio/synthetic_layout_overview.png" alt="合成版型與偵測框示意圖">
+        <div class="image-caption">
+          <span><strong>圖一：合成版型與模位邊界偵測</strong>（涵蓋混款尺寸、自適應邊框與準星範本取樣）</span>
+          <span>合成測資</span>
+        </div>
+      </div>
+
+      <div class="image-block">
+        <img src="assets/portfolio/synthetic_diff_example.png" alt="合成 8×8 像素修改差分對照圖">
+        <div class="image-caption">
+          <span><strong>圖二：局部 8×8 像素瑕疵差分標註</strong>（Golden vs 待測檔 vs 差異紅點合成圖）</span>
+          <span>1:1 像素級</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Benchmarks -->
+    <section id="benchmarks">
+      <h2>六大合成案例驗證指標</h2>
+      <p>在去識別化驗證套件中，完整 18 項測試全數通過。以獨立產生之 Ground Truth 進行逐框嚴格評測：</p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>合成版型案例</th>
+              <th>特徵與難點</th>
+              <th>模位總數</th>
+              <th>最低 IoU</th>
+              <th>漏框 (FN) / 誤框 (FP) / 黏框</th>
+              <th>狀態</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="code">layout_24_large</td>
+              <td>大尺寸、淺色底色</td>
+              <td>24</td>
+              <td>0.9979</td>
+              <td>0 / 0 / 0</td>
+              <td><span class="badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+              <td class="code">layout_60_mixed</td>
+              <td>長條與方形混合多尺寸</td>
+              <td>60</td>
+              <td>0.9937</td>
+              <td>0 / 0 / 0</td>
+              <td><span class="badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+              <td class="code">layout_40_missing</td>
+              <td>網格中預留特定空格</td>
+              <td>40</td>
+              <td>0.9956</td>
+              <td>0 / 0 / 0</td>
+              <td><span class="badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+              <td class="code">layout_180_dense</td>
+              <td>高密度小模位緊湊排列</td>
+              <td>180</td>
+              <td>0.9909</td>
+              <td>0 / 0 / 0</td>
+              <td><span class="badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+              <td class="code">layout_36_custom_fiducial</td>
+              <td>自訂特殊準星、單角低對比</td>
+              <td>36</td>
+              <td>0.9956</td>
+              <td>0 / 0 / 0</td>
+              <td><span class="badge-pass">PASS</span></td>
+            </tr>
+            <tr>
+              <td class="code">layout_random</td>
+              <td>不規則排列、多尺寸緊間距</td>
+              <td>45</td>
+              <td>0.9914</td>
+              <td>0 / 0 / 0</td>
+              <td><span class="badge-pass">PASS</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-light);">
+        * 註：六種案例之最大邊界誤差均控制在 ≤ 1 px 內，模位候選能精確吻合目標輪廓。
+      </p>
+    </section>
+
+    <!-- Engineering Findings -->
+    <section id="findings">
+      <h2>工程邊界與關鍵洞察</h2>
+      
+      <div class="callout">
+        <div class="callout-title">核心工程發現：像素相等 ≠ 視覺相等</div>
+        <p>
+          外部影像經過不同壓縮或重新編碼（如 JPEG）後，即使肉眼看起來完全相同，解碼後之數值矩陣仍可能因量化雜訊產生細微差異。零容差檢測流程能精確標示此差異；因此「準星成功對位」並不等同於「模位內容必然逐像素相符」。
+        </p>
+      </div>
+
+      <h3>對位的亞像素邊界觀察</h3>
+      <p>
+        在整數像素平移情境下，準星估計算法可完美復原並達成零差異。但若涉及小數像素平移（如 +2.5, −1.3 px）或微小旋轉（0.15°），影像重採樣（Resampling）將在邊緣產生過渡像素，導致全版模位受波及。此現象作為演算法邊界觀察，在產線驗收時需明確區分編碼插值與物理瑕疵。
+      </p>
+    </section>
+
+    <!-- Tech Stack -->
+    <section>
+      <h2>技術棧與實作範疇</h2>
+      <ul>
+        <li><strong>核心演算法</strong>：Python、OpenCV、NumPy、SciPy（輪廓幾何分析、仿射對位矩陣、ROI 差分）。</li>
+        <li><strong>前端工作台</strong>：原生 HTML5 Canvas、CSS3、現代 JavaScript（輕量無框架依賴、具備防呆警告與直覺標註功能）。</li>
+        <li><strong>通訊與控制</strong>：微型 Python HTTP Server、虛擬 PLC 控制器狀態模擬（PASS / FAIL / REVIEW / ERROR）。</li>
+      </ul>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>
+      本頁面為去識別化作品集技術案例展示 ｜ 原始碼與模組架構請造訪 
+      <a href="https://github.com/darke45678-dev/LayoutDiff" target="_blank">GitHub Repository</a>
+    </p>
+  </footer>
+
+</body>
+</html>
